@@ -17,6 +17,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const auth_1 = __importDefault(require("../lib/auth"));
 const razorpay_1 = __importDefault(require("razorpay"));
 const zod_1 = __importDefault(require("zod"));
+const crypto_1 = __importDefault(require("crypto"));
 const router = express_1.default.Router();
 const razorpayInstance = new razorpay_1.default({
     key_id: process.env.RAZORPAY_KEY || 'your_key_id',
@@ -88,8 +89,11 @@ router.post('/update', (req, res) => __awaiter(void 0, void 0, void 0, function*
         }
     }
     // Otherwise, verify the successful payment
-    const secret = process.env.RAZORPAY_SECRET || 'your_key_secret';
-    const generatedSignature = hmac_sha256(razorpay_order_id + "|" + razorpay_payment_id, secret);
+    const secret = process.env.RAZORPAY_KEY || 'your_key_secret';
+    const generatedSignature = crypto_1.default
+        .createHmac('sha256', secret)
+        .update(razorpay_payment_id + '|' + razorpay_order_id)
+        .digest('hex');
     if (generatedSignature !== razorpay_signature) {
         return res.status(400).json({ message: 'Invalid signature. Payment verification failed' });
     }
@@ -111,6 +115,3 @@ router.post('/update', (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
 }));
 exports.default = router;
-function hmac_sha256(arg0, secret) {
-    throw new Error('Function not implemented.');
-}

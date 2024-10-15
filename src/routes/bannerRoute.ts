@@ -24,7 +24,7 @@ const storage = multer.diskStorage({
 // Set up multer with the defined storage configuration
 const upload = multer({ storage: storage });
 
-router.post('/upload', verifyAdmin, upload.single('files'), async (req, res) => {
+router.post('/upload', upload.single('files'), async (req, res) => {
   if (!req.file) {
       return res.status(400).send('No file uploaded.');
   }

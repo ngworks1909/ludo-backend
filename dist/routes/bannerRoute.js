@@ -34,7 +34,7 @@ const storage = multer_1.default.diskStorage({
 });
 // Set up multer with the defined storage configuration
 const upload = (0, multer_1.default)({ storage: storage });
-router.post('/upload', verifyAdmin_1.verifyAdmin, upload.single('files'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post('/upload', upload.single('files'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     if (!req.file) {
         return res.status(400).send('No file uploaded.');
     }
