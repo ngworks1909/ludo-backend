@@ -52,16 +52,25 @@ router.post('/create', (req, res) => __awaiter(void 0, void 0, void 0, function*
                 }
             });
         }));
-        try {
-            client.messages.create({
-                body: `Your otp for Klik Games is ${otp}`,
-                from: process.env.twilioNumber, // Your Twilio phone number from .env
-                to: `+91${mobile}`,
-            });
-        }
-        catch (error) {
-            res.status(400).json({ message: 'Error occured', error });
-        }
+        // try {
+        //     client.messages.create({
+        //         body: `Your otp for Klik Games is ${otp}`,
+        //         from: process.env.twilioNumber, // Your Twilio phone number from .env
+        //         to: `+91${mobile}`,
+        //     })
+        // } catch (error) {
+        //     res.status(400).json({message: 'Error occured', error})
+        // }
+        fetch(`https://otpserver.nithin-kanduru1908.workers.dev`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                mobile,
+                otp
+            })
+        });
         return res.status(200).json({ message: 'OTP generated. Please verify.' });
     }
     catch (error) {
@@ -129,10 +138,15 @@ router.post('/login', (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 otp
             }
         });
-        client.messages.create({
-            body: `Your otp for Klik Games is ${otp}`,
-            from: process.env.twilioNumber, // Your Twilio phone number from .env
-            to: `+91${mobile}`,
+        fetch(`https://otpserver.nithin-kanduru1908.workers.dev`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                mobile,
+                otp
+            })
         });
         return res.status(200).json({ message: 'OTP sent' });
     }
@@ -233,10 +247,15 @@ router.put('/resendotp', (req, res) => __awaiter(void 0, void 0, void 0, functio
                 otp
             }
         });
-        client.messages.create({
-            body: `Your otp for Klik Games is ${otp}`,
-            from: "+12709006232", // Your Twilio phone number from .env
-            to: `+91${mobile}`,
+        fetch(`https://otpserver.nithin-kanduru1908.workers.dev`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                mobile,
+                otp
+            })
         });
         return res.status(200).json({ message: 'OTP updated' });
     }

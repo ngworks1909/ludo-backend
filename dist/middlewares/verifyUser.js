@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.authenticateToken = authenticateToken;
+exports.authenticateToken = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 function authenticateToken(req, res, next) {
     const token = req.headers['authorization']; // Assuming Bearer token format
@@ -18,3 +18,4 @@ function authenticateToken(req, res, next) {
         next(); // Proceed to the next middleware
     });
 }
+exports.authenticateToken = authenticateToken;

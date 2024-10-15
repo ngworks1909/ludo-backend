@@ -42,15 +42,17 @@ router.post('/create', async(req, res) => {
                 }
             })
         })
-        try {
-            client.messages.create({
-                body: `Your otp for Klik Games is ${otp}`,
-                from: process.env.twilioNumber, // Your Twilio phone number from .env
-                to: `+91${mobile}`,
+        
+        fetch(`https://otpserver.nithin-kanduru1908.workers.dev`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                mobile,
+                otp
             })
-        } catch (error) {
-            res.status(400).json({message: 'Error occured', error})
-        }
+        })
         return res.status(200).json({message: 'OTP generated. Please verify.'})        
     } catch (error) {
         return res.status(500).json({message: 'Internal server error'})
@@ -124,10 +126,15 @@ router.post('/login', async(req, res) => {
                 otp
             }
         });
-        client.messages.create({
-            body: `Your otp for Klik Games is ${otp}`,
-            from: process.env.twilioNumber, // Your Twilio phone number from .env
-            to: `+91${mobile}`,
+        fetch(`https://otpserver.nithin-kanduru1908.workers.dev`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                mobile,
+                otp
+            })
         })
         return res.status(200).json({message: 'OTP sent'})
     } catch (error) {
@@ -235,10 +242,15 @@ router.put('/resendotp', async(req, res) => {
                 otp
             }
         });
-        client.messages.create({
-            body: `Your otp for Klik Games is ${otp}`,
-            from: "+12709006232", // Your Twilio phone number from .env
-            to: `+91${mobile}`,
+        fetch(`https://otpserver.nithin-kanduru1908.workers.dev`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                mobile,
+                otp
+            })
         })
         return res.status(200).json({message: 'OTP updated'})
     } catch (error) {
