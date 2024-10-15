@@ -38,6 +38,7 @@ router.post('/upload', upload.single('files'), (req, res) => __awaiter(void 0, v
     if (!req.file) {
         return res.status(400).send('No file uploaded.');
     }
+    console.log(1);
     // Validate title field using Zod
     const validateBanner = zod_1.default.object({
         title: zod_1.default.string().min(4, { message: "Title should have at least 4 characters" }),
@@ -46,6 +47,7 @@ router.post('/upload', upload.single('files'), (req, res) => __awaiter(void 0, v
     if (!bannerValidate.success) {
         return res.status(400).json({ message: 'Title should have at least 4 characters' });
     }
+    console.log(2);
     const fileUrl = `${process.env.APP_URL}/uploads/${req.file.filename}`; // Create the file URL
     try {
         const { title } = req.body; // Extract the title from the request body
@@ -56,6 +58,7 @@ router.post('/upload', upload.single('files'), (req, res) => __awaiter(void 0, v
                 imageUrl: fileUrl, // Save the constructed file URL
             },
         });
+        console.log(3);
         return res.status(200).json({ message: 'File uploaded successfully' }); // Success response
     }
     catch (error) {
