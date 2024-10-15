@@ -40,17 +40,18 @@ router.post('/create', (req, res) => __awaiter(void 0, void 0, void 0, function*
             return res.status(400).json({ message: 'User not found' });
         }
         const { amount } = req.body;
-        if (!amount) {
+        if (!amount || isNaN(amount) || amount <= 0) {
             return res.status(400).json({ message: 'Invalid amount' });
         }
-        const validateAmount = zod_1.default.number().safeParse(amount);
-        if (!validateAmount) {
-            return res.status(400).json({ message: 'Invalid type' });
+        const validateAmount = zod_1.default.number().positive().safeParse(amount);
+        if (!validateAmount.success) {
+            return res.status(400).json({ message: 'Invalid amount type' });
         }
+        // Razorpay order options
         const options = {
-            amount: amount * 100, // Amount in paise
+            amount: Math.round(amount * 100), // Convert to paise and ensure it's an integer
             currency: 'INR',
-            receipt: 'receipt_order_123',
+            receipt: `receipt_order_${new Date().getTime()}`, // Dynamic receipt
             payment_capture: 1, // Auto-capture
         };
         const order = yield razorpayInstance.orders.create(options);
@@ -63,9 +64,10 @@ router.post('/create', (req, res) => __awaiter(void 0, void 0, void 0, function*
                 currency: order.currency
             },
         });
-        return res.status(200).json({ message: 'Payment sent', order, transaction });
+        return res.status(200).json({ message: 'Payment created', order, transaction });
     }
     catch (error) {
+        console.error("Razorpay Error:", error); // Log for debugging
         return res.status(500).json({ message: 'Internal server error' });
     }
 }));
@@ -89,8 +91,8 @@ router.post('/update', (req, res) => __awaiter(void 0, void 0, void 0, function*
         }
     }
     // Otherwise, verify the successful payment
-    const secret = process.env.RAZORPAY_KEY || 'your_key_secret';
-    const generatedSignature = crypto_1.default.createHmac('sha256', secret).update(razorpay_payment_id + '|' + razorpay_order_id).digest('hex');
+    const secret = process.env.RAZORPAY_SECRET || 'your_key_secret';
+    const generatedSignature = crypto_1.default.createHmac('sha256', secret).update(razorpay_order_id + '|' + razorpay_payment_id).digest('hex');
     if (generatedSignature !== razorpay_signature) {
         return res.status(400).json({ message: 'Invalid signature. Payment verification failed' });
     }

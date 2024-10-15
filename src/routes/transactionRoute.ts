@@ -14,57 +14,62 @@ const razorpayInstance = new Razorpay({
 });
 
 router.post('/create',  async(req, res) => {
-    try {
-        const token = req.headers['authorization'] 
-    if (!token) {
-        return res.status(401).send('Unauthorized token'); // Unauthorized
-    }
-    const data = jwt.verify(token, process.env.JWT_SECRET || "secret")
-    const {userId}: any = data
-    const user = await prisma.user.findUnique({
-        where: {
-            userId
-        }
-    });
+  try {
+      const token = req.headers['authorization'];
+      if (!token) {
+          return res.status(401).send('Unauthorized token'); // Unauthorized
+      }
 
-    if(!user){
-        return res.status(400).json({message: 'User not found'})
-    }
+      const data = jwt.verify(token, process.env.JWT_SECRET || "secret");
+      const { userId }: any = data;
 
+      const user = await prisma.user.findUnique({
+          where: {
+              userId
+          }
+      });
 
-    const { amount } = req.body;
-    if(!amount){
-        return res.status(400).json({message: 'Invalid amount'})
-    }
-    const validateAmount = z.number().safeParse(amount);
-    if(!validateAmount){
-        return res.status(400).json({message: 'Invalid type'})
-    }
-    const options = {
-        amount: amount * 100, // Amount in paise
-        currency: 'INR',
-        receipt: 'receipt_order_123',
-        payment_capture: 1, // Auto-capture
-    };
+      if (!user) {
+          return res.status(400).json({ message: 'User not found' });
+      }
 
-    const order = await razorpayInstance.orders.create(options);
+      const { amount } = req.body;
+      if (!amount || isNaN(amount) || amount <= 0) {
+          return res.status(400).json({ message: 'Invalid amount' });
+      }
 
-    // Store the transaction in the database
-    const transaction = await prisma.transactions.create({
-      data: {
-        orderId: order.id,
-        userId,
-        amount: Number(order.amount),
-        currency: order.currency
-      },
-    });
+      const validateAmount = z.number().positive().safeParse(amount);
+      if (!validateAmount.success) {
+          return res.status(400).json({ message: 'Invalid amount type' });
+      }
 
-    return res.status(200).json({message: 'Payment sent', order, transaction})
-    } catch (error) {
-        return res.status(500).json({message: 'Internal server error'});
-    }
+      // Razorpay order options
+      const options = {
+          amount: Math.round(amount * 100), // Convert to paise and ensure it's an integer
+          currency: 'INR',
+          receipt: `receipt_order_${new Date().getTime()}`, // Dynamic receipt
+          payment_capture: 1, // Auto-capture
+      };
 
+      const order = await razorpayInstance.orders.create(options);
+
+      // Store the transaction in the database
+      const transaction = await prisma.transactions.create({
+          data: {
+              orderId: order.id,
+              userId,
+              amount: Number(order.amount),
+              currency: order.currency
+          },
+      });
+
+      return res.status(200).json({ message: 'Payment created', order, transaction });
+  } catch (error) {
+      console.error("Razorpay Error:", error); // Log for debugging
+      return res.status(500).json({ message: 'Internal server error' });
+  }
 });
+
 
 
 router.post('/update', async (req, res) => {
@@ -88,9 +93,8 @@ router.post('/update', async (req, res) => {
     }
   
     // Otherwise, verify the successful payment
-    const secret = process.env.RAZORPAY_KEY || 'your_key_secret';
-    const generatedSignature = crypto.createHmac('sha256', secret).update(razorpay_payment_id + '|' + razorpay_order_id).digest('hex');
-  
+    const secret = process.env.RAZORPAY_SECRET || 'your_key_secret';
+    const generatedSignature = crypto.createHmac('sha256', secret).update(razorpay_order_id + '|' + razorpay_payment_id).digest('hex');
     if (generatedSignature !== razorpay_signature) {
       return res.status(400).json({ message: 'Invalid signature. Payment verification failed' });
     }
