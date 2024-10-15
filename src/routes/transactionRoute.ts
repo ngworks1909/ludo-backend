@@ -89,10 +89,7 @@ router.post('/update', async (req, res) => {
   
     // Otherwise, verify the successful payment
     const secret = process.env.RAZORPAY_SECRET || 'your_key_secret';
-    const generatedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(razorpay_payment_id + '|' + razorpay_order_id)
-      .digest('hex');
+    const generatedSignature = hmac_sha256(razorpay_order_id + "|" + razorpay_payment_id, secret);
   
     if (generatedSignature !== razorpay_signature) {
       return res.status(400).json({ message: 'Invalid signature. Payment verification failed' });
@@ -118,3 +115,7 @@ router.post('/update', async (req, res) => {
   
 
 export default router;
+
+function hmac_sha256(arg0: string, secret: string): any {
+  throw new Error('Function not implemented.');
+}
