@@ -6,6 +6,7 @@ import prisma from '../lib/auth';
 import { validateBanner } from '../zod/validateBanner';
 import fs from 'fs'
 import z from 'zod'
+import { authenticateToken } from '../middlewares/verifyUser';
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ const storage = multer.diskStorage({
 // Set up multer with the defined storage configuration
 const upload = multer({ storage: storage });
 
-router.post('/upload', upload.single('files'), async (req, res) => {
+router.post('/upload', verifyAdmin, upload.single('files'), async (req, res) => {
   if (!req.file) {
       return res.status(400).send('No file uploaded.');
   }
@@ -58,7 +59,7 @@ router.post('/upload', upload.single('files'), async (req, res) => {
 
 
 
-router.get('/fetchallbanners', async(req, res) => {
+router.get('/fetchallbanners', authenticateToken, async(req, res) => {
   try {
     const banners = await prisma.banner.findMany({});
     return res.status(200).json({banners})
@@ -67,7 +68,7 @@ router.get('/fetchallbanners', async(req, res) => {
   }
 })
 
-router.get('/fetchbanner/:bannerId', async(req, res) => {
+router.get('/fetchbanner/:bannerId', authenticateToken, async(req, res) => {
   try {
     const bannerId = req.params.bannerId;
     if(!bannerId){
