@@ -68,14 +68,14 @@ router.post('/create',  async(req, res) => {
 
 
 router.post('/update', async (req, res) => {
-    const { orderId } = req.body.razorpay_order_id;
-    const { razorpay_payment_id, razorpay_signature, status } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, status } = req.body;
+    razorpay_order_id
   
     // If status is failed, no need to verify signature, directly update status
     if (status === 'failed') {
       try {
         const updatedTransaction = await prisma.transactions.updateMany({
-          where: { orderId: orderId },
+          where: { orderId: razorpay_order_id },
           data: {
             status: "Failed", // Mark transaction as failed
           },
@@ -88,10 +88,10 @@ router.post('/update', async (req, res) => {
     }
   
     // Otherwise, verify the successful payment
-    const secret = process.env.RAZORPAY_KEY_SECRET || 'your_key_secret';
+    const secret = process.env.RAZORPAY_SECRET || 'your_key_secret';
     const generatedSignature = crypto
       .createHmac('sha256', secret)
-      .update(razorpay_payment_id + '|' + orderId)
+      .update(razorpay_payment_id + '|' + razorpay_order_id)
       .digest('hex');
   
     if (generatedSignature !== razorpay_signature) {
@@ -101,7 +101,7 @@ router.post('/update', async (req, res) => {
     try {
       // Update transaction for successful payment
       const updatedTransaction = await prisma.transactions.updateMany({
-        where: { orderId: orderId },
+        where: { orderId: razorpay_order_id },
         data: {
           paymentId: razorpay_payment_id,
           signature: razorpay_signature,

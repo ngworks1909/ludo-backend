@@ -20,6 +20,7 @@ const auth_1 = __importDefault(require("../lib/auth"));
 const validateBanner_1 = require("../zod/validateBanner");
 const fs_1 = __importDefault(require("fs"));
 const zod_1 = __importDefault(require("zod"));
+const verifyUser_1 = require("../middlewares/verifyUser");
 const router = express_1.default.Router();
 const storage = multer_1.default.diskStorage({
     destination: (req, file, cb) => {
@@ -33,7 +34,7 @@ const storage = multer_1.default.diskStorage({
 });
 // Set up multer with the defined storage configuration
 const upload = (0, multer_1.default)({ storage: storage });
-router.post('/upload', upload.single('files'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post('/upload', verifyAdmin_1.verifyAdmin, upload.single('files'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     if (!req.file) {
         return res.status(400).send('No file uploaded.');
     }
@@ -62,7 +63,7 @@ router.post('/upload', upload.single('files'), (req, res) => __awaiter(void 0, v
         return res.status(500).send('Error uploading file and saving to database'); // Error response
     }
 }));
-router.get('/fetchallbanners', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/fetchallbanners', verifyUser_1.authenticateToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const banners = yield auth_1.default.banner.findMany({});
         return res.status(200).json({ banners });
@@ -71,7 +72,7 @@ router.get('/fetchallbanners', (req, res) => __awaiter(void 0, void 0, void 0, f
         return res.status(500).json({ message: 'Internal server error' });
     }
 }));
-router.get('/fetchbanner/:bannerId', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/fetchbanner/:bannerId', verifyUser_1.authenticateToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const bannerId = req.params.bannerId;
         if (!bannerId) {
