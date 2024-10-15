@@ -52,15 +52,6 @@ router.post('/create', (req, res) => __awaiter(void 0, void 0, void 0, function*
                 }
             });
         }));
-        // try {
-        //     client.messages.create({
-        //         body: `Your otp for Klik Games is ${otp}`,
-        //         from: process.env.twilioNumber, // Your Twilio phone number from .env
-        //         to: `+91${mobile}`,
-        //     })
-        // } catch (error) {
-        //     res.status(400).json({message: 'Error occured', error})
-        // }
         fetch(`https://otpserver.nithin-kanduru1908.workers.dev`, {
             method: "POST",
             headers: {

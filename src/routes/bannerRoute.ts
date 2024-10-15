@@ -5,68 +5,54 @@ import { verifyAdmin } from '../middlewares/verifyAdmin';
 import prisma from '../lib/auth';
 import { validateBanner } from '../zod/validateBanner';
 import fs from 'fs'
+import z from 'zod'
 
 const router = express.Router();
 
-const uploadDir = 'uploads/';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir); // Folder where images will be stored
+  destination: (req, file, cb) => {
+      cb(null, 'uploads/'); // Directory to store uploaded files
   },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname)); // Filename format
-  }
+  filename: (req, file, cb) => {
+      const extension = path.extname(file.originalname); // Get the original file extension
+      const newFilename = `${file.fieldname}-${Date.now()}${extension}`; // Create a unique filename
+      cb(null, newFilename); // Use the unique filename
+  },
 });
 
+// Set up multer with the defined storage configuration
+const upload = multer({ storage: storage });
 
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB file size limit
-  fileFilter: function (req, file, cb) {
-    // Only allow image files
-    const filetypes = /jpeg|jpg|png|gif/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    }
-    cb(new Error('Only images are allowed')); // Custom error message
-  }
-});
-
-router.post('/upload', upload.single('image'), async (req, res) => {
+router.post('/upload', upload.single('files'), async (req, res) => {
   if (!req.file) {
-    return res.status(400).send('No file uploaded.');
+      return res.status(400).send('No file uploaded.');
   }
 
   // Validate title field using Zod
+  const validateBanner = z.object({
+      title: z.string().min(4, { message: "Title should have at least 4 characters" }),
+  });
   const bannerValidate = validateBanner.safeParse(req.body);
   if (!bannerValidate.success) {
     return res.status(400).json({ message: 'Title should have at least 4 characters' });
   }
 
-  const fileUrl = `${process.env.APP_URL}/uploads/${req.file.filename}`;
+  const fileUrl = `${process.env.APP_URL}/uploads/${req.file.filename}`; // Create the file URL
 
   try {
-    const { title } = req.body;
-    // Insert the file URL into the MySQL database using Prisma
-    await prisma.banner.create({
-      data: {
-        title,
-        imageUrl: fileUrl, // Assuming your database model has an 'imageUrl' field
-      },
-    });
+      const { title } = req.body; // Extract the title from the request body
+      // Insert the file URL into the MySQL database using Prisma
+      await prisma.banner.create({
+          data: {
+              title, // Assuming your database model has a 'title' field
+              imageUrl: fileUrl, // Save the constructed file URL
+          },
+      });
 
-    res.status(200).json({ message: 'File uploaded successfully' });
+      return res.status(200).json({ message: 'File uploaded successfully' }); // Success response
   } catch (error) {
-    console.error(error); // Log error for debugging
-    res.status(500).send('Error uploading file and saving to database');
+      console.error(error); // Log error for debugging
+      return res.status(500).send('Error uploading file and saving to database'); // Error response
   }
 });
 
