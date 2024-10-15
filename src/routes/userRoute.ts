@@ -18,7 +18,6 @@ router.post('/create', async(req, res) => {
         if(!userValidate.success){
             return res.status(400).json({message: 'Invalid credentials'})
         }
-        console.log("1")
         const {name, mobile} = req.body;
         let user = await prisma.user.findUnique({
             where: {
@@ -28,7 +27,6 @@ router.post('/create', async(req, res) => {
         if(user){
             return res.status(400).json({message: 'User already exists'})
         }
-        console.log("2")
         const otp = generateOtp()
         await prisma.$transaction(async(tx) => {
             user = await tx.user.create({
@@ -44,7 +42,6 @@ router.post('/create', async(req, res) => {
                 }
             })
         })
-        console.log("3")
         try {
             client.messages.create({
                 body: `Your otp for Klik Games is ${otp}`,
@@ -54,7 +51,6 @@ router.post('/create', async(req, res) => {
         } catch (error) {
             res.status(400).json({message: 'Error occured', error})
         }
-        console.log("4")
         return res.status(200).json({message: 'OTP generated. Please verify.'})        
     } catch (error) {
         return res.status(500).json({message: 'Internal server error'})
