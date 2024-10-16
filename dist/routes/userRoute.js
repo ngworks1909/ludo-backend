@@ -14,14 +14,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const twilio_1 = __importDefault(require("twilio"));
 const auth_1 = __importDefault(require("../lib/auth"));
 const validateUser_1 = require("../zod/validateUser");
 const router = express_1.default.Router();
 const generateOtp = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
 };
-const client = (0, twilio_1.default)(process.env.accountSid, process.env.authToken);
 router.post('/create', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userValidate = validateUser_1.validateUser.safeParse(req.body);

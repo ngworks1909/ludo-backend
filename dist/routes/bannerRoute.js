@@ -121,10 +121,6 @@ router.delete('/deletebanner/:bannerId', verifyAdmin_1.verifyAdmin, (req, res) =
             const filename = path_1.default.basename(banner.imageUrl);
             const filePath = path_1.default.join(__dirname, 'uploads', filename);
             fs_1.default.unlink(filePath, (err) => __awaiter(void 0, void 0, void 0, function* () {
-                if (err) {
-                    console.error('File deletion error:', err);
-                    return res.status(500).json({ message: 'Error deleting file from server.' });
-                }
                 // Delete the corresponding record from the database
                 yield tx.banner.delete({
                     where: {
