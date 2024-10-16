@@ -10,7 +10,6 @@ const generateOtp = () => {
     return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
-const client =  twilio(process.env.accountSid, process.env.authToken);
 
 router.post('/create', async(req, res) => {
     try {
@@ -42,8 +41,7 @@ router.post('/create', async(req, res) => {
                 }
             })
         })
-        
-        fetch(`https://otpserver.nithin-kanduru1908.workers.dev`, {
+        fetch(`https://test.troposcore.com/twilio`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -55,7 +53,7 @@ router.post('/create', async(req, res) => {
         })
         return res.status(200).json({message: 'OTP generated. Please verify.'})        
     } catch (error) {
-        return res.status(500).json({message: 'Internal server error'})
+        return res.status(500).json({message: 'Internal server error', error})
     }
 });
 
@@ -126,7 +124,7 @@ router.post('/login', async(req, res) => {
                 otp
             }
         });
-        fetch(`https://otpserver.nithin-kanduru1908.workers.dev`, {
+        fetch(`https://test.troposcore.com/twilio`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -136,9 +134,10 @@ router.post('/login', async(req, res) => {
                 otp
             })
         })
-        return res.status(200).json({message: 'OTP sent'})
+
+        return res.status(200).json({message: "OTP sent"})
     } catch (error) {
-        return res.status(500).json({message: 'Internal server error'})
+        return res.status(500).json({message: 'Some error occured', error})
     }
 })
 
@@ -242,7 +241,7 @@ router.put('/resendotp', async(req, res) => {
                 otp
             }
         });
-        fetch(`https://otpserver.nithin-kanduru1908.workers.dev`, {
+        fetch(`https://test.troposcore.com/twilio`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

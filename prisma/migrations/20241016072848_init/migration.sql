@@ -76,6 +76,7 @@ CREATE TABLE `Transactions` (
     `userId` VARCHAR(191) NOT NULL,
     `orderId` VARCHAR(191) NOT NULL,
     `paymentId` VARCHAR(191) NULL,
+    `signature` VARCHAR(191) NULL,
     `currency` VARCHAR(191) NOT NULL DEFAULT 'INR',
     `amount` DOUBLE NOT NULL,
     `status` ENUM('Pending', 'Paid', 'Failed') NOT NULL DEFAULT 'Pending',

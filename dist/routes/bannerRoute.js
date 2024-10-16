@@ -13,62 +13,50 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const verifyAdmin_1 = require("../middlewares/verifyAdmin");
 const auth_1 = __importDefault(require("../lib/auth"));
 const validateBanner_1 = require("../zod/validateBanner");
 const fs_1 = __importDefault(require("fs"));
-const zod_1 = __importDefault(require("zod"));
 const verifyUser_1 = require("../middlewares/verifyUser");
+const zod_1 = __importDefault(require("zod"));
 const router = express_1.default.Router();
-const storage = multer_1.default.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/'); // Directory to store uploaded files
-    },
-    filename: (req, file, cb) => {
-        const extension = path_1.default.extname(file.originalname); // Get the original file extension
-        const newFilename = `${file.fieldname}-${Date.now()}${extension}`; // Create a unique filename
-        cb(null, newFilename); // Use the unique filename
-    },
-});
-// Set up multer with the defined storage configuration
-const upload = (0, multer_1.default)({ storage: storage });
-router.post('/upload', upload.single('files'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    if (!req.file) {
-        return res.status(400).send('No file uploaded.');
-    }
-    console.log(1);
-    // Validate title field using Zod
-    const validateBanner = zod_1.default.object({
-        title: zod_1.default.string().min(4, { message: "Title should have at least 4 characters" }),
-    });
-    const bannerValidate = validateBanner.safeParse(req.body);
-    if (!bannerValidate.success) {
-        return res.status(400).json({ message: 'Title should have at least 4 characters' });
-    }
-    console.log(2);
-    const fileUrl = `${process.env.APP_URL}/uploads/${req.file.filename}`; // Create the file URL
+router.post('/upload', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { title } = req.body; // Extract the title from the request body
-        // Insert the file URL into the MySQL database using Prisma
-        yield auth_1.default.banner.create({
+        const bannerValidate = validateBanner_1.validateBanner.safeParse(req.body);
+        if (!bannerValidate.success) {
+            return res.status(400).json({ message: 'Invalid request' });
+        }
+        const { url, title } = req.body;
+        const banner = yield auth_1.default.banner.create({
             data: {
-                title, // Assuming your database model has a 'title' field
-                imageUrl: fileUrl, // Save the constructed file URL
-            },
+                title,
+                imageUrl: url
+            }
         });
-        console.log(3);
-        return res.status(200).json({ message: 'File uploaded successfully' }); // Success response
+        return res.status(200).json({ message: 'Banner created successfully', banner });
     }
     catch (error) {
-        console.error(error); // Log error for debugging
-        return res.status(500).send('Error uploading file and saving to database'); // Error response
+        return res.status(500).json({ message: 'Internal server error', error });
     }
 }));
-router.get('/fetchallbanners', verifyUser_1.authenticateToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+// router.get('/fetchallbanners', authenticateToken, async(req, res) => {
+//   try {
+//     const banners = await prisma.banner.findMany({});
+//     return res.status(200).json({banners})
+//   } catch (error) {
+//     return res.status(500).json({message: 'Internal server error'})
+//   }
+// })
+router.get('/fetchallbanners', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const banners = yield auth_1.default.banner.findMany({});
+        const banners = yield auth_1.default.banner.findMany({
+            select: {
+                bannerId: true,
+                imageUrl: true,
+                title: true
+            }
+        });
         return res.status(200).json({ banners });
     }
     catch (error) {
@@ -94,17 +82,17 @@ router.get('/fetchbanner/:bannerId', verifyUser_1.authenticateToken, (req, res) 
         return res.status(500).json({ message: 'Internal server error' });
     }
 }));
-router.put('/updatebanner/:bannerId', verifyAdmin_1.verifyAdmin, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.put('/updatebanner/:bannerId', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const bannerId = req.params.bannerId;
         if (!bannerId) {
             return res.status(400).json({ message: 'Invalid banner' });
         }
-        const bannerValidate = validateBanner_1.validateBanner.safeParse(req.body);
+        const { title } = req.body;
+        const bannerValidate = zod_1.default.string().min(4).safeParse(title);
         if (!bannerValidate.success) {
             return res.status(400).json({ message: 'Title should have atleast 4 characters' });
         }
-        const { title } = req.body;
         yield auth_1.default.banner.update({
             where: {
                 bannerId
