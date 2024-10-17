@@ -13,11 +13,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const path_1 = __importDefault(require("path"));
-const verifyAdmin_1 = require("../middlewares/verifyAdmin");
 const auth_1 = __importDefault(require("../lib/auth"));
 const validateBanner_1 = require("../zod/validateBanner");
-const fs_1 = __importDefault(require("fs"));
 const verifyUser_1 = require("../middlewares/verifyUser");
 const zod_1 = __importDefault(require("zod"));
 const router = express_1.default.Router();
@@ -107,7 +104,7 @@ router.put('/updatebanner/:bannerId', (req, res) => __awaiter(void 0, void 0, vo
         return res.status(500).json({ message: 'Internal server error' });
     }
 }));
-router.delete('/deletebanner/:bannerId', verifyAdmin_1.verifyAdmin, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.delete('/deletebanner/:bannerId', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const bannerId = req.params.bannerId;
         if (!bannerId) {
@@ -118,17 +115,13 @@ router.delete('/deletebanner/:bannerId', verifyAdmin_1.verifyAdmin, (req, res) =
             if (!banner) {
                 return res.status(400).json({ message: 'Banner not found' });
             }
-            const filename = path_1.default.basename(banner.imageUrl);
-            const filePath = path_1.default.join(__dirname, 'uploads', filename);
-            fs_1.default.unlink(filePath, (err) => __awaiter(void 0, void 0, void 0, function* () {
-                // Delete the corresponding record from the database
-                yield tx.banner.delete({
-                    where: {
-                        bannerId: banner.bannerId, // Assuming imageUrl is unique in the database
-                    },
-                });
-                return res.status(200).json({ message: 'Banner deleted successfully.' });
-            }));
+            // Delete the corresponding record from the database
+            yield tx.banner.delete({
+                where: {
+                    bannerId: banner.bannerId, // Assuming imageUrl is unique in the database
+                },
+            });
+            return res.status(200).json({ message: 'Banner deleted successfully.', url: banner.imageUrl });
         }));
     }
     catch (error) {

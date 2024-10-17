@@ -1,9 +1,6 @@
 import express from 'express'
-import path from 'path';
-import { verifyAdmin } from '../middlewares/verifyAdmin';
 import prisma from '../lib/auth';
 import { validateBanner } from '../zod/validateBanner';
-import fs from 'fs'
 import { authenticateToken } from '../middlewares/verifyUser';
 import z from 'zod'
 
@@ -98,7 +95,7 @@ router.put('/updatebanner/:bannerId', async(req, res) => {
 });
 
 
-router.delete('/deletebanner/:bannerId', verifyAdmin, async(req, res) => {
+router.delete('/deletebanner/:bannerId', async(req, res) => {
     try {
       const bannerId = req.params.bannerId
     if(!bannerId){
@@ -109,10 +106,6 @@ router.delete('/deletebanner/:bannerId', verifyAdmin, async(req, res) => {
       if(!banner){
         return res.status(400).json({message: 'Banner not found'})
       }
-      const filename = path.basename(banner.imageUrl);
-      
-      const filePath = path.join(__dirname, 'uploads', filename);
-      fs.unlink(filePath, async (err) => {
         
   
         // Delete the corresponding record from the database
@@ -122,8 +115,7 @@ router.delete('/deletebanner/:bannerId', verifyAdmin, async(req, res) => {
           },
         });
   
-        return res.status(200).json({ message: 'Banner deleted successfully.' });
-      });
+        return res.status(200).json({ message: 'Banner deleted successfully.', url: banner.imageUrl });
   
     })
     } catch (error) {
