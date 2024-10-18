@@ -157,8 +157,7 @@ router.post('/verifyotp', (req, res) => __awaiter(void 0, void 0, void 0, functi
         if (otp !== user.otp) {
             return res.status(400).json({ message: 'Incorrect OTP' });
         }
-        const token = jsonwebtoken_1.default.sign({ mobile: user.mobile, userId: user.userId, username: user.username }, process.env.JWT_SECRET || "secret", { expiresIn: "2h" } // Token expires in 2 hours
-        );
+        const token = jsonwebtoken_1.default.sign({ mobile: user.mobile, userId: user.userId, username: user.username }, process.env.JWT_SECRET || "secret");
         return res.status(200).json({ token, message: 'Login successful' });
     }
     catch (error) {
@@ -247,6 +246,27 @@ router.put('/resendotp', (req, res) => __awaiter(void 0, void 0, void 0, functio
             })
         });
         return res.status(200).json({ message: 'OTP updated' });
+    }
+    catch (error) {
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+}));
+router.get('/fetchalluser', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const users = yield auth_1.default.user.findMany({
+            select: {
+                userId: true,
+                username: true,
+                mobile: true,
+                wallet: {
+                    select: {
+                        totalBalance: true
+                    },
+                    take: 1
+                }
+            }
+        });
+        return res.status(200).json({ users });
     }
     catch (error) {
         return res.status(500).json({ message: 'Internal server error' });

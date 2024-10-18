@@ -1,6 +1,5 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import twilio from 'twilio';
 import prisma from '../lib/auth';
 import { validateUser } from '../zod/validateUser';
 
@@ -159,9 +158,7 @@ router.post('/verifyotp', async(req, res) => {
         }
         const token = jwt.sign( { mobile: user.mobile, userId: user.userId, username: user.username }, 
             process.env.JWT_SECRET || "secret", 
-            { expiresIn: "2h" } // Token expires in 2 hours
         );
-
         return res.status(200).json({token, message: 'Login successful'})
     } catch (error) {
         return res.status(500).json({message: 'Internal server error', error})
@@ -252,6 +249,27 @@ router.put('/resendotp', async(req, res) => {
             })
         })
         return res.status(200).json({message: 'OTP updated'})
+    } catch (error) {
+        return res.status(500).json({message: 'Internal server error'})
+    }
+})
+
+router.get('/fetchalluser', async(req, res) => {
+    try {
+        const users = await prisma.user.findMany({
+            select: {
+                userId: true,
+                username: true,
+                mobile: true,
+                wallet: {
+                    select: {
+                        totalBalance: true
+                    },
+                    take: 1
+                }
+            }
+        })
+        return res.status(200).json({users})
     } catch (error) {
         return res.status(500).json({message: 'Internal server error'})
     }
