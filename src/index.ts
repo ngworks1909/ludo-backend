@@ -9,6 +9,7 @@ import bannerRouter from './routes/bannerRoute'
 import { Server } from 'socket.io'
 import http from 'http'
 import jwt from 'jsonwebtoken'
+import { GameManager } from './game/GameManager'
 
 dotenv.config()
 
@@ -32,14 +33,17 @@ app.get("/",(req,res)=>{
 
 
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: "*", // Allow any origin (adjust as needed for production)
+        methods: ["GET", "POST"], // Allow only specific HTTP methods
+    }
+});
 
-declare global{
-    var onlineUsers : Map<string, string>;
-    var twoPlayers: string[];
-    var fourPlayers: string[];
 
-}
+
+const gameManager = new GameManager();
+  
 
 io.on('connection', (socket) => {
     let token = socket.handshake.query.token
@@ -53,64 +57,15 @@ io.on('connection', (socket) => {
     if (typeof data === 'string') {
         return socket.disconnect(true);
     }
-    const userId = data.userId;
-    onlineUsers.set(userId, socket.id);
-
-
-    socket.on('add-twoPlayer', ()=> {
-        if(!onlineUsers.has(userId)){
-            return
-        }
-        const targetSocketId = onlineUsers.get(userId);
-        if(!targetSocketId){
-            return
-        }
-        if(fourPlayers.includes(userId)){
-            io.to(targetSocketId).emit('addTwoPlayerFailed', { message: 'You are already in a four-player game.' });
-            return
-        }
-        if (twoPlayers.includes(userId)) {
-            io.to(targetSocketId).emit('alreadyInTwoPlayers', { message: 'You are already in the two-player game.' });
-            return;
-        }
-        else{
-            twoPlayers.push(userId)
-            io.to(targetSocketId).emit('addedToTwoPlayers', { message: 'You have been successfully added to the two-player game.' });
-        }
-    })
-
-    socket.on('add-fourPlayer', () => {
-        if(!onlineUsers.has(userId)){
-            return
-        }
-        const targetSocketId = onlineUsers.get(userId);
-        if(!targetSocketId){
-            return
-        }
-        if(twoPlayers.includes(userId)){
-            io.to(targetSocketId).emit('addTwoPlayerFailed', { message: 'You are already in a two-player game.' });
-            return
-        }
-        if (fourPlayers.includes(userId)) {
-            io.to(targetSocketId).emit('alreadyInTwoPlayers', { message: 'You are already in the four-player game.' });
-            return;
-        }
-        else{
-            twoPlayers.push(userId)
-            io.to(targetSocketId).emit('addedToFourPlayers', { message: 'You have been successfully added to the four-player game.' });
-        }
-        
-    })
-    socket.on('gameEnd', ({gameId, players, winnerId, gameType}: {gameId: string, players: string[], winnerId: string, gameType: string}) => {
-        //update winner wallet with amount and add into wongames
-        //update lost players lost game activity
-    })
+    const userId = data.userId
+    gameManager.addUser(socket)
+    socket.send('Connected')
     
     socket.on('disconnect', () => {
-        onlineUsers.delete(userId);
+        gameManager.removeUser(socket)
     });
 })
 
-app.listen(process.env.PORT || 3001 ,()=>{
+server.listen(process.env.PORT || 3001 ,()=>{
     console.log(`Connected to localhost on port ${process.env.PORT || 3001}`);
 })
