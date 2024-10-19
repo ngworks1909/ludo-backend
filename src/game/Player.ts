@@ -11,19 +11,14 @@ export class Player {
         this.pieces = [-1, -1, -1, -1]; // All pieces start at -1 (home)
     }
 
-    // Getter for userId
     public getUserId(): string {
         return this.userId;
     }
-
-    // Getter for socket
     public getSocket(): Socket {
         return this.socket;
     }
-
-    // Getter for pieces array
     public getPieces(): number[] {
-        return [...this.pieces]; // Return a copy to prevent direct manipulation
+        return [...this.pieces];
     }
 
     public movePiece(pieceIndex: number, score: number): boolean {
@@ -31,8 +26,6 @@ export class Player {
             return false;
         }
         const currentPosition = this.pieces[pieceIndex];
-
-        // Bringing the piece out of home
         if (currentPosition === -1 && score === 6) {
             this.pieces[pieceIndex] = 0; // Move to start
             return true;
@@ -40,8 +33,6 @@ export class Player {
         // Moving the piece on the board
         else if (currentPosition >= 0 && currentPosition < 57) {
             const newPosition = currentPosition + score;
-
-            // Only move if it doesn't exceed 57 (end position)
             if (newPosition <= 57) {
                 this.pieces[pieceIndex] = newPosition;
                 return true;
@@ -54,11 +45,10 @@ export class Player {
         if (pieceIndex < 0 || pieceIndex >= this.pieces.length) {
             return;
         }
-        this.pieces[pieceIndex] = -1; // Send the piece back to home
+        this.pieces[pieceIndex] = -1;
     }
 
     public hasWon(): boolean {
-        // Check if all pieces have reached the end (position 57)
         return this.pieces.every(piece => piece === 57);
     }
 

@@ -20,22 +20,18 @@ export class Game {
         this.totalAmount = (requiredPlayers * investmentAmount) - (requiredPlayers * investmentAmount * this.tax);
     }
 
-    // Getter for gameId
     public getGameId(): string {
         return this.gameId;
     }
 
-    // Getter for players array
     public getPlayers(): Player[] {
-        return [...this.players]; // Return a copy to prevent direct manipulation
+        return [...this.players];
     }
 
-    // Getter for current turn index
     public getCurrentTurn(): number {
         return this.currentTurn;
     }
 
-    // Getter for winner
     public getWinner(): Player | null {
         return this.winner;
     }
@@ -51,7 +47,12 @@ export class Game {
         return false;
     }
 
-    private startGame(): void {
+    public isReadyToStart(): boolean {
+        return this.players.length === this.requiredPlayers;
+    }
+    
+
+    public startGame(): void {
         if (this.players.length === this.requiredPlayers) {
             this.currentTurn = 0;
             this.players[this.currentTurn].getSocket().emit('yourTurn');
