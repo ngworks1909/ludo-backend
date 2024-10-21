@@ -50,10 +50,10 @@ io.on('connection', (socket) => {
         return socket.disconnect(true);
     }
     const userId = data.userId;
-    gameManager.addUser(socket);
+    gameManager.addUser(userId, socket);
     socket.send('Connected');
     socket.on('disconnect', () => {
-        gameManager.removeUser(socket);
+        gameManager.removeUser(userId);
     });
 });
 server.listen(process.env.PORT || 3001, () => {

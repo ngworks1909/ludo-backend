@@ -53,7 +53,7 @@ io.on('connection', (socket) => {
     if(!token){
         return socket.disconnect(true)
     }
-    const data = jwt.verify(token, process.env.JWT_SECRET || "secret");
+    const data = jwt.verify(token, process.env.JWT_SECRET || "secret")
     if (typeof data === 'string') {
         return socket.disconnect(true);
     }

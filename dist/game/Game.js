@@ -12,34 +12,39 @@ class Game {
         this.investmentAmount = investmentAmount;
         this.totalAmount = (requiredPlayers * investmentAmount) - (requiredPlayers * investmentAmount * this.tax);
     }
-    // Getter for gameId
     getGameId() {
         return this.gameId;
     }
-    // Getter for players array
     getPlayers() {
-        return [...this.players]; // Return a copy to prevent direct manipulation
+        return [...this.players];
     }
-    // Getter for current turn index
     getCurrentTurn() {
         return this.currentTurn;
     }
-    // Getter for winner
     getWinner() {
         return this.winner;
     }
     joinGame(player) {
         if (this.players.length < this.requiredPlayers) {
             this.players.push(player);
-            if (this.players.length === this.requiredPlayers) {
-                this.startGame();
-            }
             return true;
         }
         return false;
     }
+    isReadyToStart() {
+        return this.players.length === this.requiredPlayers;
+    }
     startGame() {
         if (this.players.length === this.requiredPlayers) {
+            // Emit 'gameStarted' event to all players
+            this.players.forEach(player => {
+                player.getSocket().emit('gameStarted', {
+                    gameId: this.gameId,
+                    players: this.players.map(p => p.getUserId()), // You can send any relevant game info here
+                    investmentAmount: this.investmentAmount
+                });
+            });
+            // Set the first player's turn
             this.currentTurn = 0;
             this.players[this.currentTurn].getSocket().emit('yourTurn');
         }
@@ -58,6 +63,9 @@ class Game {
             else {
                 this.nextTurn();
             }
+        }
+        else {
+            currentPlayer.getSocket().emit('invalidMove');
         }
     }
     checkForKill(currentPlayer, pieceIndex) {

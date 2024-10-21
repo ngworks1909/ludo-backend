@@ -39,9 +39,6 @@ export class Game {
     public joinGame(player: Player): boolean {
         if (this.players.length < this.requiredPlayers) {
             this.players.push(player);
-            if (this.players.length === this.requiredPlayers) {
-                this.startGame();
-            }
             return true;
         }
         return false;
@@ -54,10 +51,21 @@ export class Game {
 
     public startGame(): void {
         if (this.players.length === this.requiredPlayers) {
+            // Emit 'gameStarted' event to all players
+            this.players.forEach(player => {
+                player.getSocket().emit('gameStarted', {
+                    gameId: this.gameId,
+                    players: this.players.map(p => p.getUserId()), // You can send any relevant game info here
+                    investmentAmount: this.investmentAmount
+                });
+            });
+    
+            // Set the first player's turn
             this.currentTurn = 0;
             this.players[this.currentTurn].getSocket().emit('yourTurn');
         }
     }
+    
 
     public playTurn(pieceIndex: number, score: number): void {
         const currentPlayer = this.players[this.currentTurn];
@@ -74,6 +82,9 @@ export class Game {
             } else {
                 this.nextTurn();
             }
+        }
+        else{
+            currentPlayer.getSocket().emit('invalidMove')
         }
     }
 

@@ -56,3 +56,4 @@ export class Player {
         return this.pieces[pieceIndex];
     }
 }
+
