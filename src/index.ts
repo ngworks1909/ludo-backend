@@ -33,7 +33,7 @@ app.get("/",(req,res)=>{
 
 
 const server = http.createServer(app);
-const io = new Server(server, {
+export const io = new Server(server, {
     cors: {
         origin: "*", // Allow any origin (adjust as needed for production)
         methods: ["GET", "POST"], // Allow only specific HTTP methods
@@ -50,6 +50,7 @@ io.on('connection', (socket) => {
     if (Array.isArray(token)) {
         token = token[0]; 
     }
+    console.log(token)
     if(!token){
         return socket.disconnect(true)
     }
@@ -58,8 +59,8 @@ io.on('connection', (socket) => {
         return socket.disconnect(true);
     }
     const userId = data.userId
-    gameManager.addUser(userId, socket)
-    socket.send('Connected')
+    gameManager.addUser(socket.id, userId)
+    socket.send('Connected to socket server')
     
     socket.on('disconnect', () => {
         gameManager.removeUser(userId)

@@ -1,89 +1,175 @@
-import { Player } from "./Player";
-import { Game } from "./Game";
+
+import prisma from "../lib/auth";
 import { Socket } from "socket.io";
+import { io } from "../index";
+import { createId } from '@paralleldrive/cuid2';
+
+interface Room {
+    roomId: string,
+    gameId: string,
+    players: Player[],
+}
+interface Player {
+    userId: string;
+    socketId: string;
+}
+
+interface QueueEntry {
+    userId: string;
+    socketId: string;
+}
+
 
 export class GameManager {
-    private games: Map<string, Game>; // Map to track games by gameId
-    private twoPlayerQueue: Map<number, string[]>; // Queue for 2-player games by investment
-    private fourPlayerQueue: Map<number, string[]>; // Queue for 4-player games by investment
-    private users: Map<string, Socket>; // Map to track online users
+    private onlineUsers: Map<string, string>
+    private joinQueue: Map<string, QueueEntry[]>;
+    private runningGames: Map<string, Room[]>
 
-    constructor() {
-        this.games = new Map();
-        this.twoPlayerQueue = new Map();
-        this.fourPlayerQueue = new Map();
-        this.users = new Map();
+    constructor(){
+        this.onlineUsers = new Map();
+        this.joinQueue = new Map();
+        this.runningGames = new Map();
     }
 
-    // Add a new user
-    public addUser(userId: string, socket: Socket) {
-        this.users.set(userId, socket);
-    }
-
-    // Remove a user
-    public removeUser(userId: string) {
-        this.users.delete(userId);
-    }
-
-    // Join game method to handle player joining
-    public joinGame(userId: string, socket: Socket, gameType: string, investmentAmount: number) {
-        const player = new Player(userId, socket);
-
-        // Validate investment amount
-        if (![50, 100, 200].includes(investmentAmount)) {
-            throw new Error("Invalid investment amount");
-        }
-
-        if (gameType === "2") {
-            // Handle 2-player game logic
-            if (!this.twoPlayerQueue.has(investmentAmount)) {
-                this.twoPlayerQueue.set(investmentAmount, []);
+    public async joinGame(socket: Socket, gameId: string){
+        try {
+            const userId = this.onlineUsers.get(socket.id);
+            if(!userId){
+                socket.emit('error', { message: 'User not authenticated. Please log in.' });
+                return;
             }
-            const queue = this.twoPlayerQueue.get(investmentAmount)!;
+            
+            // const existingRoom = this.joinQueue.get(gameId);
+            // if(existingRoom){
+            //     existingRoom.push({userId, socketId: socket.id});
+            //     socket.join(existingRoom.roomId);
+            //     if(existingRoom.players.length === existingRoom.maxPlayers){
+            //         this.waitingRooms.delete(gameId);
+            //         const roomCreated = await this.createRoomInDB(existingRoom);
+            //         if(!roomCreated){
+            //             io.in(existingRoom.roomId).emit('roomCreationError', { message: 'Error creating room.' });
+            //             return;
+            //         }
+            //         const runningRooms = this.runningGames.get(gameId) || [];
+            //         runningRooms.push(existingRoom);
+            //         this.runningGames.set(gameId, runningRooms);
+            //         io.in(existingRoom.roomId).emit('gameStarted', { gameId, players: existingRoom.players });
+            //     }
+            //     else{
+            //         io.in(existingRoom.roomId).emit('playerJoined', { gameId, player: {userId, socketId: socket.id} })
+            //     }
+            // }
+            // else{
 
-            if (queue.length > 0) {
-                const gameId = queue.shift(); // Get the first game ID
-                if (gameId !== undefined) { // Ensure gameId is defined
-                    const game = this.games.get(gameId);
-                    if (game) {
-                        game.joinGame(player); // Add player to existing game
-                        if (game.isReadyToStart()) {
-                            game.startGame(); // Start the game if ready
-                        }
-                    }
-                }
-            } else {
-                const newGameId = `2p-${Date.now()}`; // Generate a unique game ID
-                const newGame = new Game(newGameId, 2, investmentAmount); // Create a new 2-player game
-                newGame.joinGame(player);
-                this.games.set(newGameId, newGame);
-                queue.push(newGameId); // Add to the queue
-            }
-        } else if (gameType === "4") {
-            // Handle 4-player game logic
-            if (!this.fourPlayerQueue.has(investmentAmount)) {
-                this.fourPlayerQueue.set(investmentAmount, []);
-            }
-            const queue = this.fourPlayerQueue.get(investmentAmount)!;
+            //     const maxPlayers = await this.getMaxPlayers(gameId);
+            //     if(!maxPlayers){
+            //         socket.emit('error', { message: 'Game not found.' });
+            //         return;
+            //     }
+            //     const roomId = createId();
 
-            if (queue.length > 0) {
-                const gameId = queue.shift(); // Get the first game ID
-                if (gameId !== undefined) { // Ensure gameId is defined
-                    const game = this.games.get(gameId);
-                    if (game) {
-                        game.joinGame(player); // Add player to existing game
-                        if (game.isReadyToStart()) {
-                            game.startGame(); // Start the game if ready
-                        }
-                    }
-                }
-            } else {
-                const newGameId = `4p-${Date.now()}`; // Generate a unique game ID
-                const newGame = new Game(newGameId, 4, investmentAmount); // Create a new 4-player game
-                newGame.joinGame(player);
-                this.games.set(newGameId, newGame);
-                queue.push(newGameId); // Add to the queue
-            }
+            //     const newRoom = {
+            //         gameId,
+            //         roomId,
+            //         players: [{userId, socketId: socket.id}],
+            //         maxPlayers
+            //     }
+
+            //     this.waitingRooms.set(gameId, newRoom);
+            //     socket.join(roomId);
+            //     socket.emit('roomCreated', {message: 'Please wait for other players to join.'});
+            // }
+        } catch (error) {
+            socket.emit('error', { message: 'An error occurred while joining the game.' });
         }
     }
+
+
+    private addToQueue(gameId: string, socketId: string, userId: string) {
+        const queue = this.joinQueue.get(gameId) || [];
+        queue.push({ socketId, userId });
+        this.joinQueue.set(gameId, queue);
+    }
+
+    private async processJoinQueue(gameId: string){
+        const queue = this.joinQueue.get(gameId) || [];
+        const gameDetails = await this.getGameDetails(gameId)
+        if(!gameDetails){
+            return;
+        }
+        if(queue.length >= gameDetails.maxPlayers){
+            const roomId = createId();
+            const room = {
+                gameId,
+                roomId,
+                players: queue.slice(0, gameDetails.maxPlayers),
+            }
+            const roomCreated = await this.createRoomInDB(room);
+            if(!roomCreated){
+                io.in(room.roomId).emit('roomCreationError', { message: 'Error creating room.' });
+                return;
+            }
+            const runningRooms = this.runningGames.get(gameId) || [];
+            runningRooms.push(room);
+            this.runningGames.set(gameId, runningRooms);
+            io.in(room.roomId).emit('gameStarted', { gameId, players: room.players });
+            queue.splice(0, gameDetails.maxPlayers);
+            this.joinQueue.set(gameId, queue);
+        }
+    }
+
+
+    public async getMaxPlayers(gameId: string){
+        const game = await prisma.game.findUnique({
+            where: {
+                gameId
+            },
+            select:{
+                maxPlayers: true
+            }
+        });
+        return game?.maxPlayers;
+    }
+
+    public async createRoomInDB(room: Room){
+        const roomCreated = await prisma.room.create({
+            data: {
+                roomId: room.roomId,
+                gameId: room.gameId,
+                players: {
+                    createMany: {
+                        data: room.players.map(player => ({
+                            userId: player.userId
+                        }))
+                    }
+                }
+            }
+        });
+        return !!roomCreated
+    }
+
+    private async getGameDetails(gameId: string){
+        const game = await prisma.game.findUnique({
+            where: {
+                gameId
+            },
+            select: {
+                gameId: true,
+                maxPlayers: true,
+                entryFee: true,
+            }
+        });
+        return game;
+    }
+
+
+    public addUser(socketId: string, userId: string){
+        this.onlineUsers.set(socketId, userId)
+    }
+
+    public removeUser(socketId: string){
+        this.onlineUsers.delete(socketId)
+    }
+
+
 }

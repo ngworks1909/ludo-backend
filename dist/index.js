@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.io = void 0;
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const express_1 = __importDefault(require("express"));
@@ -30,18 +31,19 @@ app.get("/", (req, res) => {
     res.send("Hello User");
 });
 const server = http_1.default.createServer(app);
-const io = new socket_io_1.Server(server, {
+exports.io = new socket_io_1.Server(server, {
     cors: {
         origin: "*", // Allow any origin (adjust as needed for production)
         methods: ["GET", "POST"], // Allow only specific HTTP methods
     }
 });
 const gameManager = new GameManager_1.GameManager();
-io.on('connection', (socket) => {
+exports.io.on('connection', (socket) => {
     let token = socket.handshake.query.token;
     if (Array.isArray(token)) {
         token = token[0];
     }
+    console.log(token);
     if (!token) {
         return socket.disconnect(true);
     }
@@ -50,8 +52,8 @@ io.on('connection', (socket) => {
         return socket.disconnect(true);
     }
     const userId = data.userId;
-    gameManager.addUser(userId, socket);
-    socket.send('Connected');
+    gameManager.addUser(socket.id, userId);
+    socket.send('Connected to socket server');
     socket.on('disconnect', () => {
         gameManager.removeUser(userId);
     });
